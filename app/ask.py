@@ -1,16 +1,17 @@
-"""第1回: 素のLLMに1回だけ質問するスクリプト。
+"""第1回: 素のLLMに質問し、会話を続けるスクリプト。
 
 使い方:
     uv run python -m app.ask "LoRAとは何ですか？"
     uv run python -m app.ask            # 質問を省略すると、講座に固有の質問をする
 
-ツールも会話履歴も持たない「素の」呼び出し。
+ツールは使わず、会話履歴を保って質問を続ける「素の」呼び出し。
 講座に固有のことを聞くと、「分からない」と答えるか、一般論でもっともらしく答える
 （講座の実際とは違う）ことを確かめよう。
 （第3回で、用語集を検索できるエージェントにして改善する）
 """
 
 import argparse
+import time
 
 from google import genai
 from google.genai import errors
@@ -21,9 +22,16 @@ from app.config import MODEL, api_error_message, get_api_key
 DEFAULT_QUESTION = "AIE2026の講座の宿題にある「3レベル」とは何ですか？"
 
 
-def ask(question: str) -> str:
+def ask(question: str, history: list[dict[str, object]]) -> str:
     client = genai.Client(api_key=get_api_key())
-    response = client.models.generate_content(model=MODEL, contents=question)
+    user_message = {"role": "user", "parts": [{"text": question}]}
+    start_time = time.perf_counter()
+    response = client.models.generate_content(
+        model=MODEL,
+        contents=[*history, user_message],
+    )
+    response_time = time.perf_counter() - start_time
+    print(f"[time] response={response_time:.2f}s")
 
     usage = response.usage_metadata
     if usage is not None:
@@ -32,7 +40,9 @@ def ask(question: str) -> str:
             f"output={usage.candidates_token_count}"
         )
 
-    return response.text
+    answer = response.text or ""
+    history.extend([user_message, {"role": "model", "parts": [{"text": answer}]}])
+    return answer
 
 
 def main() -> None:
@@ -41,12 +51,20 @@ def main() -> None:
     args = parser.parse_args()
 
     print(f"[model] {MODEL}")
-    print(f"[質問] {args.question}\n")
-    try:
-        print(ask(args.question))
-    except errors.APIError as e:
-        print(api_error_message(e.code, e.message))
-        raise SystemExit(1)
+    history: list[dict[str, object]] = []
+    question = args.question
+
+    while True:
+        print(f"[質問] {question}\n")
+        try:
+            print(ask(question, history))
+        except errors.APIError as e:
+            print(api_error_message(e.code, e.message))
+            raise SystemExit(1)
+
+        question = input("\nFollow-up (or /quit): ").strip()
+        if question.lower() in {"/quit", "quit", "exit"}:
+            break
 
 
 if __name__ == "__main__":
