@@ -18,7 +18,34 @@ The tool selects glossary entries belonging to the specified lecture, randomly c
 
 ## 宿題
 
-- 取り組んだレベル：基礎 / 実装 / 発展
-- やったこと：
-- 結果：
-- 気づき・疑問：
+- 取り組んだレベル：基
+- やったこと：  I tested whether removing the explicit requirement to search the
+  glossary would change the agent's behavior.
+
+  I first ran the following command with the original instructions:
+    uv run python -m app.agent --trace "LoRAとQLoRAの違いは？"
+
+  I then removed only this line from INSTRUCTIONS in app/agent.py:
+  「用語や講座に固有のことを答える前に、必ず search_glossary で用語集を確認する。」
+
+  This instruction requires the agent to check the glossary before
+  answering about terms or course-specific matters.
+
+  I saved the file and repeated the identical command. The model,
+  registered tools, and tool docstrings were unchanged between runs.
+- 結果：Both runs called the same tools in the same order:
+  1. search_glossary({'query': 'LoRA'})
+  2. search_glossary({'query': 'QLoRA'})
+
+  Before: requests=2, tool_calls=2.
+  After: requests=2, tool_calls=2.
+
+  Both answers explained that LoRA trains small adapter matrices while
+  keeping the base-model weights frozen, whereas QLoRA additionally
+  quantizes the base-model weights to reduce memory use.
+  Both cited Lecture 2. The wording differed slightly, but the main
+  explanation and tool-use pattern remained the same.
+- 気づき・疑問：Removing the explicit search requirement did not change tool use in
+  this comparison. The search_glossary docstring still instructed the
+  model to search before answering about AI engineering terms, which
+  may explain why the searches continued.
