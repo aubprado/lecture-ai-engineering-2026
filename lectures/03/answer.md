@@ -12,8 +12,7 @@ For “LoRAとQLoRAの違いは？”:
   - make_quiz({'lecture': 2})
     
 - 1つの質問での LLM 呼び出し回数（`requests`）：Both traced runs used 2 LLM requests. In the LoRA/QLoRA run, the model requested two glossary searches, then used their results to answer. In the quiz run, it requested make_quiz, then used the returned question to respond. The runs used 2 and 1 tool calls, respectively.
-- 追加したツールと、docstring に書いた説明：
-I added make_quiz(lecture: int) -> str in app/tools.py and registered it in app/agent.py using agent.tool_plain(tools.make_quiz).
+- 追加したツールと、docstring に書いた説明：I added make_quiz(lecture: int) -> str in app/tools.py and registered it in app/agent.py using agent.tool_plain(tools.make_quiz).
 
 The tool selects glossary entries belonging to the specified lecture, randomly chooses one term, and returns a question, its answer, and the lecture number as a JSON string. It returns an explanatory message if no terms match the lecture.The docstring explains that the tool returns one review question and its answer from a specified lecture, and should be used when a learner requests a review or confirmation question for that lecture. I verified that the agent called make_quiz({'lecture': 2}). The tool returned a question about overfitting and its definition. The agent displayed the question and invited the learner to think before revealing the answer. All 11 tests passed.
 
